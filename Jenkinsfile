@@ -1,18 +1,14 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.9.6'
-    }
-
     environment {
-        DOCKER_IMAGE = "thedevilingninja/devops_ve6:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "sample-java-app:${BUILD_NUMBER}"
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Clone Code') {
             steps {
-                git 'https://github.com/chaitanya566/DevOps_VE6.git'
+                git 'https://github.com/your-username/sample-java-app.git'
             }
         }
 
@@ -28,17 +24,12 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Deploy to Minikube') {
             steps {
-                withDockerRegistry([credentialsId: 'docker-hub-creds']) {
-                    sh 'docker push $DOCKER_IMAGE'
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh 'kubectl set image deployment/sample-app-deployment sample-container=$DOCKER_IMAGE'
+                sh '''
+                  kubectl set image deployment/sample-app-deployment sample-container=$DOCKER_IMAGE || \
+                  kubectl apply -f deployment.yaml && kubectl apply -f service.yaml
+                '''
             }
         }
     }
