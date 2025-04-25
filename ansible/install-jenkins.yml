@@ -1,0 +1,192 @@
+---
+- name: Install Jenkins and CI/CD tools on Ubuntu
+  hosts: jenkins
+  become: yes
+  become_method: sudo
+
+  vars:
+    java_version: "openjdk-17-jdk"
+    jenkins_repo_key_url: "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key"
+    jenkins_repo_url: "deb https://pkg.jenkins.io/debian-stable binary/"
+    maven_version: "3.9.6"  # Updated Maven version
+    maven_url: "https://dlcdn.apache.org/maven/maven-3/{{ maven_version }}/binaries/apache-maven-{{ maven_version }}-bin.tar.gz"  # Dynamic URL
+    kubernetes_version: "1.28.4"
+    terraform_version: "1.6.6"
+    kubectl_version: "1.28.4"
+    docker_apt_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+    docker_apt_repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+
+    - name: Install required system packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+          - python3-pip
+          - unzip
+        state: present
+
+    # Install Java 17
+    - name: Install Java 17
+      apt:
+        name: "{{ java_version }}"
+        state: present
+
+    # Install Jenkins
+    - name: Add Jenkins apt repository key
+      apt_key:
+        url: "{{ jenkins_repo_key_url }}"
+        state: present
+
+    - name: Add Jenkins apt repository
+      apt_repository:
+        repo: "{{ jenkins_repo_url }}"
+        state: present
+        filename: jenkins
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+      notify: restart jenkins
+
+    # Install Docker
+    - name: Add Docker apt key
+      apt_key:
+        url: "{{ docker_apt_key_url }}"
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "{{ docker_apt_repo }}"
+        state: present
+        filename: docker
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Create Docker group
+      group:
+        name: docker
+        state: present
+
+    - name: Add jenkins user to Docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+
+    - name: Add ubuntu user to Docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # Install AWS CLI
+    - name: Install AWS CLI
+      pip:
+        name: awscli
+        state: present
+        executable: pip3
+
+    # Install kubectl
+    - name: Download kubectl
+      get_url:
+        url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+
+    # Install Terraform
+    - name: Download Terraform
+      get_url:
+        url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
+        dest: /tmp/terraform.zip
+        mode: '0644'
+
+    - name: Extract Terraform
+      unarchive:
+        src: /tmp/terraform.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        mode: '0755'
+
+    - name: Clean up terraform zip
+      file:
+        path: /tmp/terraform.zip
+        state: absent
+
+    # Install Maven
+    - name: Download Maven
+      get_url:
+        url: "{{ maven_url }}"
+        dest: /tmp/maven.tar.gz
+        mode: '0644'
+
+    - name: Create Maven directory
+      file:
+        path: /opt/maven
+        state: directory
+        mode: '0755'
+
+    - name: Extract Maven
+      unarchive:
+        src: /tmp/maven.tar.gz
+        dest: /opt/maven
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+
+    - name: Set Maven environment variables
+      lineinfile:
+        path: /etc/profile.d/maven.sh
+        line: "{{ item }}"
+        create: yes
+        mode: '0644'
+      with_items:
+        - 'export M2_HOME=/opt/maven'
+        - 'export PATH=${M2_HOME}/bin:${PATH}'
+
+    - name: Clean up Maven tarball
+      file:
+        path: /tmp/maven.tar.gz
+        state: absent
+
+    # Install Ansible
+    - name: Install Ansible
+      apt:
+        name: ansible
+        state: present
+
+    # Get Jenkins initial admin password
+    - name: Get Jenkins admin password
+      shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_admin_password
+      changed_when: false
+
+    - name: Display Jenkins admin password
+      debug:
+        msg: "Jenkins initial admin password: {{ jenkins_admin_password.stdout }}"
+
+  handlers:
+    - name: restart jenkins
+      service:
+        name: jenkins
+        state: restarted

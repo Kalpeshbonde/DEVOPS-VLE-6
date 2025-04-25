@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-ve6-service
+spec:
+  type: LoadBalancer  # You can switch to NodePort if needed
+  selector:
+    app: devops-ve6
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

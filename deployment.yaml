@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-ve6-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-ve6
+  template:
+    metadata:
+      labels:
+        app: devops-ve6
+    spec:
+      containers:
+      - name: devops-ve6-container
+        image: thedevilingninja/DevOps_VE6:latest
+        ports:
+        - containerPort: 8080

@@ -1,0 +1,25 @@
+# Terraform state
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+.terraform/
+.terraform.lock.hcl
+
+# SSH keys (be extra safe)
+*.pem
+*.pub
+id_rsa
+id_rsa.pub
+
+# General system files
+.DS_Store
+*.swp
+*.swo
+*.bak
+
+# Ignore provider definitions if you want
+provider.tf
