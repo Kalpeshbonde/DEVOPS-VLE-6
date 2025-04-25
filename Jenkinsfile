@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        KUBECONFIG = credentials('kubeconfig') // match the ID of your secret file
+    }
+
     stages {
         stage('Clone Code') {
             steps {
@@ -19,6 +23,7 @@ pipeline {
         stage('Deploy to Minikube') {
             steps {
                 sh '''
+                  kubectl config get-contexts
                   kubectl apply -f deployment.yaml --validate=false
                   kubectl apply -f service.yaml --validate=false
                 '''
