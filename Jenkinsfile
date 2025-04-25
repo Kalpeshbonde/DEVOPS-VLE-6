@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone Code') {
             steps {
-                git 'https://github.com/your-username/sample-java-app.git'
+                git 'https://github.com/Kalpeshbonde/DEVOPS-VLE-6.git'
             }
         }
 
