@@ -1,0 +1,28 @@
+name: CI/CD Pipeline for VLE-6 - Kalpesh
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          sleep 2
+          echo "Docker image built successfully!"
+      - name: Push Docker image
+        run: |
+          echo "Pushing Docker image..."
+          sleep 2
+          echo "Docker image pushed!"
+      - name: Deploy to Kubernetes
+        run: |
+          echo "Deploying to Kubernetes..."
+          sleep 2
+          echo "Deployment successful!"
